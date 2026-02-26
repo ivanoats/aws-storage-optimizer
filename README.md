@@ -98,6 +98,18 @@ Reload your shell after editing:
 source ~/.zshrc
 ```
 
+## Development
+
+Install dev dependencies:
+```bash
+uv pip install -e '.[dev]'
+```
+
+Run linting:
+```bash
+pylint src/aws_storage_optimizer tests
+```
+
 ## Safety Notes
 - All action commands default to `--dry-run`.
 - Non-dry-run mutations require `--yes`.

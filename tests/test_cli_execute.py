@@ -16,8 +16,9 @@ class DummyFactory:
 
 
 class SuccessEC2Client:
-    def delete_volume(self, VolumeId):
-        return {"VolumeId": VolumeId}
+    def delete_volume(self, **kwargs):
+        volume_id = kwargs.get("VolumeId")
+        return {"VolumeId": volume_id}
 
 
 class SuccessFactory:
@@ -32,7 +33,7 @@ class SuccessFactory:
 
 
 class FailingEC2Client:
-    def delete_volume(self, VolumeId):
+    def delete_volume(self, **kwargs):
         raise ClientError(
             error_response={
                 "Error": {
@@ -56,7 +57,7 @@ class FailingFactory:
 
 
 class FailingS3Client:
-    def delete_object(self, Bucket, Key):
+    def delete_object(self, **kwargs):
         raise ClientError(
             error_response={
                 "Error": {
@@ -80,7 +81,7 @@ class FailingS3Factory:
 
 
 class FailingRDSClient:
-    def modify_db_instance(self, DBInstanceIdentifier, DBInstanceClass, ApplyImmediately):
+    def modify_db_instance(self, **kwargs):
         raise ClientError(
             error_response={
                 "Error": {

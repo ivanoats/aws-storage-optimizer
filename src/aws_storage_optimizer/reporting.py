@@ -6,7 +6,7 @@ from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 
-from aws_storage_optimizer.models import AnalysisResult
+from aws_storage_optimizer.models import AnalysisResult, Finding
 
 
 def print_analysis_table(result: AnalysisResult) -> None:
@@ -46,8 +46,6 @@ def load_analysis(path: str) -> AnalysisResult:
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
     generated_at = payload.get("generated_at", "")
     findings = payload.get("findings", [])
-
-    from aws_storage_optimizer.models import Finding
 
     parsed_findings = [
         Finding(
