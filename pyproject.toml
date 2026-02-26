@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aws-storage-optimizer"
+version = "0.1.0"
+description = "CLI utility to analyze AWS storage cost optimization opportunities"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "boto3>=1.36.0",
+  "click>=8.1.7",
+  "rich>=13.9.4"
+]
+
+[project.scripts]
+aws-storage-optimizer = "aws_storage_optimizer.cli:cli"
+aso = "aws_storage_optimizer.cli:cli"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
