@@ -1,4 +1,5 @@
 from click.testing import CliRunner
+from botocore.exceptions import ClientError
 
 import aws_storage_optimizer.cli as cli_module
 
@@ -9,6 +10,46 @@ class DummyFactory:
 
     def ec2(self):
         return object()
+
+    def rds(self):
+        return object()
+
+
+class SuccessEC2Client:
+    def delete_volume(self, VolumeId):
+        return {"VolumeId": VolumeId}
+
+
+class SuccessFactory:
+    def s3(self):
+        return object()
+
+    def ec2(self):
+        return SuccessEC2Client()
+
+    def rds(self):
+        return object()
+
+
+class FailingEC2Client:
+    def delete_volume(self, VolumeId):
+        raise ClientError(
+            error_response={
+                "Error": {
+                    "Code": "UnauthorizedOperation",
+                    "Message": "You are not authorized to perform this operation.",
+                }
+            },
+            operation_name="DeleteVolume",
+        )
+
+
+class FailingFactory:
+    def s3(self):
+        return object()
+
+    def ec2(self):
+        return FailingEC2Client()
 
     def rds(self):
         return object()
@@ -33,3 +74,67 @@ def test_execute_dry_run_succeeds(monkeypatch):
     assert result.exit_code == 0
     assert "[dry-run]" in result.output
     assert "No AWS changes applied" in result.output
+
+
+def test_execute_no_dry_run_requires_yes(monkeypatch):
+    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region: DummyFactory())
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_module.cli,
+        [
+            "execute",
+            "--action-type",
+            "delete-ebs-volume",
+            "--resource-id",
+            "vol-0123456789abcdef0",
+            "--no-dry-run",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "without --yes" in result.output
+
+
+def test_execute_no_dry_run_with_yes_succeeds(monkeypatch):
+    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region: SuccessFactory())
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_module.cli,
+        [
+            "execute",
+            "--action-type",
+            "delete-ebs-volume",
+            "--resource-id",
+            "vol-0123456789abcdef0",
+            "--no-dry-run",
+            "--yes",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "[success]" in result.output
+    assert "EBS volume deleted" in result.output
+
+
+def test_execute_no_dry_run_with_yes_handles_aws_error(monkeypatch):
+    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region: FailingFactory())
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_module.cli,
+        [
+            "execute",
+            "--action-type",
+            "delete-ebs-volume",
+            "--resource-id",
+            "vol-0123456789abcdef0",
+            "--no-dry-run",
+            "--yes",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "[failed]" in result.output
+    assert "UnauthorizedOperation" in result.output
