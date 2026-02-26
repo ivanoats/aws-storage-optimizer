@@ -55,6 +55,54 @@ class FailingFactory:
         return object()
 
 
+class FailingS3Client:
+    def delete_object(self, Bucket, Key):
+        raise ClientError(
+            error_response={
+                "Error": {
+                    "Code": "AccessDenied",
+                    "Message": "Access denied for S3 delete.",
+                }
+            },
+            operation_name="DeleteObject",
+        )
+
+
+class FailingS3Factory:
+    def s3(self):
+        return FailingS3Client()
+
+    def ec2(self):
+        return object()
+
+    def rds(self):
+        return object()
+
+
+class FailingRDSClient:
+    def modify_db_instance(self, DBInstanceIdentifier, DBInstanceClass, ApplyImmediately):
+        raise ClientError(
+            error_response={
+                "Error": {
+                    "Code": "InvalidParameterCombination",
+                    "Message": "Invalid DB instance class for this engine.",
+                }
+            },
+            operation_name="ModifyDBInstance",
+        )
+
+
+class FailingRDSFactory:
+    def s3(self):
+        return object()
+
+    def ec2(self):
+        return object()
+
+    def rds(self):
+        return FailingRDSClient()
+
+
 def test_execute_dry_run_succeeds(monkeypatch):
     monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region: DummyFactory())
 
@@ -138,3 +186,53 @@ def test_execute_no_dry_run_with_yes_handles_aws_error(monkeypatch):
     assert result.exit_code != 0
     assert "[failed]" in result.output
     assert "UnauthorizedOperation" in result.output
+
+
+def test_execute_delete_s3_object_handles_aws_error(monkeypatch):
+    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region: FailingS3Factory())
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_module.cli,
+        [
+            "execute",
+            "--action-type",
+            "delete-s3-object",
+            "--resource-id",
+            "s3://example-bucket/path/to/file.txt",
+            "--bucket",
+            "example-bucket",
+            "--key",
+            "path/to/file.txt",
+            "--no-dry-run",
+            "--yes",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "[failed]" in result.output
+    assert "AccessDenied" in result.output
+
+
+def test_execute_resize_rds_instance_handles_aws_error(monkeypatch):
+    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region: FailingRDSFactory())
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_module.cli,
+        [
+            "execute",
+            "--action-type",
+            "resize-rds-instance",
+            "--resource-id",
+            "db-instance-1",
+            "--target-class",
+            "db.t3.micro",
+            "--no-dry-run",
+            "--yes",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "[failed]" in result.output
+    assert "InvalidParameterCombination" in result.output
