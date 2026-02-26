@@ -14,6 +14,12 @@ dependencies = [
   "rich>=13.9.4"
 ]
 
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.0",
+  "pytest-cov>=5.0.0"
+]
+
 [project.scripts]
 aws-storage-optimizer = "aws_storage_optimizer.cli:cli"
 aso = "aws_storage_optimizer.cli:cli"
@@ -23,3 +29,7 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
