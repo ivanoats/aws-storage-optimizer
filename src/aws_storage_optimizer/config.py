@@ -36,9 +36,9 @@ def _profile_env_key(profile: str | None, name: str) -> str | None:
 
 def _get_env(name: str, default: str, profile: str | None = None) -> str:
     profile_key = _profile_env_key(profile, name)
-    if profile_key and os.getenv(profile_key) is not None:
-        return str(os.getenv(profile_key))
-    return str(os.getenv(f"ASO_{name}", default))
+    if profile_key and (value := os.getenv(profile_key)) is not None:
+        return value
+    return os.getenv(f"ASO_{name}", default)
 
 
 def load_config(profile: str | None = None) -> AppConfig:
