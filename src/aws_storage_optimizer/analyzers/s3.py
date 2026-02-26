@@ -3,6 +3,7 @@ from __future__ import annotations
 from botocore.exceptions import BotoCoreError, ClientError
 
 from aws_storage_optimizer.config import AppConfig
+from aws_storage_optimizer.estimation import estimate_s3_monthly_savings
 from aws_storage_optimizer.models import Finding
 
 
@@ -44,18 +45,20 @@ def analyze_s3(s3_client, config: AppConfig, top_n: int) -> list[Finding]:
     bucket_sizes.sort(key=lambda item: item[1], reverse=True)
     for bucket_name, size_bytes in bucket_sizes[:top_n]:
         size_gib = round(size_bytes / (1024**3), 2)
+        estimated_savings = estimate_s3_monthly_savings(size_gib=size_gib, config=config)
         findings.append(
             Finding(
                 service="s3",
                 resource_id=bucket_name,
                 region=None,
                 recommendation="Review lifecycle policy, archive infrequently accessed objects",
-                estimated_monthly_savings_usd=0.0,
+                estimated_monthly_savings_usd=estimated_savings,
                 risk_level="medium",
                 details={
                     "approx_size_gib": size_gib,
                     "sample_limit_note": "Size estimated from up to 5 pages of objects",
                     "stale_days_threshold": config.thresholds.s3_stale_days,
+                    "estimated_optimization_ratio": config.rates.s3_estimated_optimization_ratio,
                 },
             )
         )

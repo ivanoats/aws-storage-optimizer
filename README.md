@@ -42,6 +42,11 @@ aws-storage-optimizer analyze --output-format table
 aso analyze --output-format table
 ```
 
+Optional per-run threshold overrides:
+```bash
+aso analyze --rds-cpu-threshold 10 --rds-lookback-days 14 --s3-stale-days 120
+```
+
 ### 3. Save and re-render report
 ```bash
 aso analyze --save artifacts/findings.json --output-format json
@@ -111,6 +116,15 @@ Run linting:
 ```bash
 pylint src/aws_storage_optimizer tests
 ```
+
+Run tests with coverage reports:
+```bash
+pytest
+```
+
+Coverage outputs:
+- `artifacts/coverage.xml`
+- `artifacts/htmlcov/index.html`
 
 ## Safety Notes
 - All action commands default to `--dry-run`.

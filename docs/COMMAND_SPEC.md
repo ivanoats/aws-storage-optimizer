@@ -25,6 +25,9 @@ aws-storage-optimizer analyze [OPTIONS]
 - `--output-format [table|json]`: output renderer (default: table)
 - `--top-n-s3 INTEGER`: number of S3 buckets to include (default: 10)
 - `--save PATH`: optional path to persist findings JSON
+- `--rds-cpu-threshold FLOAT`: override underutilized CPU threshold for this run
+- `--rds-lookback-days INTEGER`: override RDS metric lookback window for this run
+- `--s3-stale-days INTEGER`: override stale-day threshold for this run
 
 ### Behavior
 - Calls analyzers for selected services
