@@ -52,7 +52,7 @@ def analyze_rds(rds_client, cloudwatch_client, config: AppConfig, region: str | 
         if avg_cpu < config.thresholds.rds_cpu_underutilized_pct:
             db_instance_class = instance.get("DBInstanceClass")
             estimated_savings = estimate_rds_monthly_savings(
-                db_instance_class=str(db_instance_class),
+                db_instance_class=db_instance_class,
                 config=config,
             )
             findings.append(
