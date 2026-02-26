@@ -25,7 +25,7 @@ def estimate_s3_monthly_savings(size_gib: float, config: AppConfig) -> float:
 
 def estimate_rds_monthly_savings(db_instance_class: str | None, config: AppConfig) -> float:
     baseline = RDS_CLASS_MONTHLY_BASELINE_USD.get(
-        str(db_instance_class),
+        db_instance_class,
         config.rates.rds_default_monthly_cost_usd,
     )
     estimate = baseline * config.rates.rds_estimated_downsize_ratio
