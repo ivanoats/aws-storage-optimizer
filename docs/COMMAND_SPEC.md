@@ -77,11 +77,13 @@ aws-storage-optimizer execute --action-type TYPE --resource-id ID [OPTIONS]
 - `--target-class TEXT`: required for `resize-rds-instance`
 - `--dry-run/--no-dry-run`: simulate only by default (`--dry-run`)
 - `--yes`: required to execute non-dry-run changes
+- `--log-path PATH`: append action outcome logs as JSONL (default: `artifacts/action-results.jsonl`)
 
 ### Behavior
 - Validates action-specific required arguments
 - In `--dry-run` mode: prints intended action only
 - In non-dry-run mode: executes via AWS API and prints result status
+- Always appends action result logs to `--log-path`
 
 ### Exit Codes
 - `0` action completed (or dry-run simulated)

@@ -36,6 +36,12 @@ Build a safe, operator-friendly CLI that identifies AWS storage cost optimizatio
 
 ## Delivery Phases
 
+### Status
+- Phase 1: Completed
+- Phase 2: Completed
+- Phase 3: Not started
+- Phase 4: Not started
+
 ### Phase 1 - Read-only Analyzer (MVP baseline)
 - Implement `analyze` command for S3, EBS, RDS
 - Generate normalized findings objects
@@ -49,6 +55,11 @@ Build a safe, operator-friendly CLI that identifies AWS storage cost optimizatio
   - RDS resize placeholder workflow
 - Enforce confirmations and dry-run defaults
 - Log action outcomes
+
+Delivered:
+- `execute` supports all three action types with action-specific argument validation
+- Non-dry-run mutations require `--yes`
+- Append-only action logs written to `artifacts/action-results.jsonl` by default
 
 ### Phase 3 - Better Cost Signal
 - Add configurable monthly savings estimator

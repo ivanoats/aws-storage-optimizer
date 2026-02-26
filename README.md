@@ -58,6 +58,8 @@ aso execute --action-type delete-ebs-volume --resource-id vol-0123456789abcdef0 
 aso execute --action-type delete-ebs-volume --resource-id vol-0123456789abcdef0 --no-dry-run --yes
 ```
 
+Action outcomes are appended to `artifacts/action-results.jsonl` by default.
+
 ## Global Options
 ```bash
 aso --profile my-aws-profile --region us-east-1 analyze
@@ -113,5 +115,6 @@ pylint src/aws_storage_optimizer tests
 ## Safety Notes
 - All action commands default to `--dry-run`.
 - Non-dry-run mutations require `--yes`.
+- Action outcomes are logged to `artifacts/action-results.jsonl` (override with `--log-path`).
 - Use least-privilege IAM and validate findings before execution.
 

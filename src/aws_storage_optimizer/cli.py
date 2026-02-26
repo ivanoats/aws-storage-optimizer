@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import json
+from pathlib import Path
 
 import click
 
@@ -16,6 +18,17 @@ from aws_storage_optimizer.reporting import (
     print_analysis_table,
     save_analysis,
 )
+
+
+def _append_action_log(action_result, log_path: str) -> None:
+    payload = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        **action_result.to_dict(),
+    }
+    target = Path(log_path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("a", encoding="utf-8") as log_file:
+        log_file.write(json.dumps(payload) + "\n")
 
 
 @click.group()
@@ -108,6 +121,12 @@ def report(input_path: str, output_format: str) -> None:
 @click.option("--target-class", default=None)
 @click.option("--dry-run/--no-dry-run", default=True, show_default=True)
 @click.option("--yes", is_flag=True, default=False, help="Required for non-dry-run mutations")
+@click.option(
+    "--log-path",
+    default="artifacts/action-results.jsonl",
+    show_default=True,
+    help="Path for append-only action result logs",
+)
 @click.pass_context
 def execute(
     ctx: click.Context,
@@ -118,9 +137,17 @@ def execute(
     target_class: str | None,
     dry_run: bool,
     yes: bool,
+    log_path: str,
 ) -> None:
     profile = ctx.obj["profile"]
     region = ctx.obj["region"]
+
+    if action_type == "delete-s3-object" and (not bucket or not key):
+        raise click.ClickException("--bucket and --key are required for delete-s3-object")
+
+    if action_type == "resize-rds-instance" and not target_class:
+        raise click.ClickException("--target-class is required for resize-rds-instance")
+
     clients = AWSClientFactory(profile=profile, region=region)
 
     result = execute_action(
@@ -135,6 +162,7 @@ def execute(
         key=key,
         target_class=target_class,
     )
+    _append_action_log(result, log_path)
     click.echo(f"[{result.status}] {result.action_type} {result.resource_id}: {result.message}")
     if result.status == "failed":
         raise click.ClickException(result.message)

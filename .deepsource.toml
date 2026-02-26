@@ -1,1 +1,16 @@
 version = 1
+
+exclude_patterns = [
+    "venv/**",
+    ".venv/**",
+    "env/**",
+    ".env/**",
+    "build/**",
+    "dist/**",
+    "*.egg-info/**",
+    "__pycache__/**",
+    ".pytest_cache/**",
+    ".tox/**",
+    "docs/**",
+    "examples/**"
+]

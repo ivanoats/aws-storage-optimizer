@@ -1,5 +1,7 @@
-from click.testing import CliRunner
+import json
+
 from botocore.exceptions import ClientError
+from click.testing import CliRunner
 
 import aws_storage_optimizer.cli as cli_module
 
@@ -123,6 +125,55 @@ def test_execute_dry_run_succeeds(monkeypatch):
     assert result.exit_code == 0
     assert "[dry-run]" in result.output
     assert "No AWS changes applied" in result.output
+
+
+def test_execute_delete_s3_object_requires_bucket_and_key(monkeypatch):
+    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region: DummyFactory())
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_module.cli,
+        [
+            "execute",
+            "--action-type",
+            "delete-s3-object",
+            "--resource-id",
+            "s3://example-bucket/path/to/file.txt",
+            "--dry-run",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "--bucket and --key are required" in result.output
+
+
+def test_execute_dry_run_writes_action_log(monkeypatch, tmp_path):
+    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region: DummyFactory())
+
+    runner = CliRunner()
+    log_path = tmp_path / "action-results.jsonl"
+    result = runner.invoke(
+        cli_module.cli,
+        [
+            "execute",
+            "--action-type",
+            "delete-ebs-volume",
+            "--resource-id",
+            "vol-0123456789abcdef0",
+            "--dry-run",
+            "--log-path",
+            str(log_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert log_path.exists()
+
+    lines = log_path.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) == 1
+    payload = json.loads(lines[0])
+    assert payload["status"] == "dry-run"
+    assert payload["action_type"] == "delete-ebs-volume"
 
 
 def test_execute_no_dry_run_requires_yes(monkeypatch):
