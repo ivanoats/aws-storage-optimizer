@@ -39,7 +39,7 @@ Build a safe, operator-friendly CLI that identifies AWS storage cost optimizatio
 ### Status
 - Phase 1: Completed
 - Phase 2: Completed
-- Phase 3: Not started
+- Phase 3: Completed
 - Phase 4: Not started
 
 ### Phase 1 - Read-only Analyzer (MVP baseline)
@@ -65,6 +65,11 @@ Delivered:
 - Add configurable monthly savings estimator
 - Add environment/profile threshold overrides
 - Improve prioritization strategy
+
+Delivered:
+- Added configurable savings estimation for S3 and RDS alongside existing EBS estimates
+- Added profile-specific environment overrides (e.g., `ASO_PROFILE_<PROFILE>_...`) and per-run threshold flags
+- Updated prioritization to use weighted scoring (savings, risk, service, utilization)
 
 ### Phase 4 - Operational Hardening
 - Add retries/backoff for API calls

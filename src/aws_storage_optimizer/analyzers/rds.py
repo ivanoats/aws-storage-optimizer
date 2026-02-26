@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from botocore.exceptions import BotoCoreError, ClientError
 
 from aws_storage_optimizer.config import AppConfig
+from aws_storage_optimizer.estimation import estimate_rds_monthly_savings
 from aws_storage_optimizer.models import Finding
 
 
@@ -49,18 +50,24 @@ def analyze_rds(rds_client, cloudwatch_client, config: AppConfig, region: str | 
             continue
 
         if avg_cpu < config.thresholds.rds_cpu_underutilized_pct:
+            db_instance_class = instance.get("DBInstanceClass")
+            estimated_savings = estimate_rds_monthly_savings(
+                db_instance_class=db_instance_class,
+                config=config,
+            )
             findings.append(
                 Finding(
                     service="rds",
                     resource_id=db_identifier,
                     region=region,
                     recommendation="Consider downsizing DB instance class after workload validation",
-                    estimated_monthly_savings_usd=0.0,
+                    estimated_monthly_savings_usd=estimated_savings,
                     risk_level="medium",
                     details={
-                        "db_instance_class": instance.get("DBInstanceClass"),
+                        "db_instance_class": db_instance_class,
                         "avg_cpu_pct": round(avg_cpu, 2),
                         "lookback_days": config.thresholds.rds_lookback_days,
+                        "estimated_downsize_ratio": config.rates.rds_estimated_downsize_ratio,
                     },
                 )
             )

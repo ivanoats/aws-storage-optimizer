@@ -39,7 +39,7 @@ def cli(ctx: click.Context, profile: str | None, region: str | None) -> None:
     ctx.ensure_object(dict)
     ctx.obj["profile"] = profile
     ctx.obj["region"] = region
-    ctx.obj["config"] = load_config()
+    ctx.obj["config"] = load_config(profile=profile)
 
 
 @cli.command()
@@ -52,6 +52,9 @@ def cli(ctx: click.Context, profile: str | None, region: str | None) -> None:
 @click.option("--output-format", type=click.Choice(["table", "json"]), default="table")
 @click.option("--top-n-s3", type=int, default=10, show_default=True)
 @click.option("--save", "save_path", default=None, help="Optional path to save findings JSON")
+@click.option("--rds-cpu-threshold", type=float, default=None)
+@click.option("--rds-lookback-days", type=int, default=None)
+@click.option("--s3-stale-days", type=int, default=None)
 @click.pass_context
 def analyze(
     ctx: click.Context,
@@ -59,10 +62,20 @@ def analyze(
     output_format: str,
     top_n_s3: int,
     save_path: str | None,
+    rds_cpu_threshold: float | None,
+    rds_lookback_days: int | None,
+    s3_stale_days: int | None,
 ) -> None:
     profile = ctx.obj["profile"]
     region = ctx.obj["region"]
     config = ctx.obj["config"]
+
+    if rds_cpu_threshold is not None:
+        config.thresholds.rds_cpu_underutilized_pct = rds_cpu_threshold
+    if rds_lookback_days is not None:
+        config.thresholds.rds_lookback_days = rds_lookback_days
+    if s3_stale_days is not None:
+        config.thresholds.s3_stale_days = s3_stale_days
 
     selected = set(services) if services else {"s3", "ebs", "rds"}
     client_factory = AWSClientFactory(profile=profile, region=region)
