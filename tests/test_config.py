@@ -16,3 +16,19 @@ def test_load_config_falls_back_to_global_override(monkeypatch):
     config = load_config(profile="dev")
 
     assert config.thresholds.s3_stale_days == 120
+
+
+def test_load_config_reads_region_from_aso_region(monkeypatch):
+    monkeypatch.setenv("ASO_REGION", "eu-west-1")
+
+    config = load_config()
+
+    assert config.region == "eu-west-1"
+
+
+def test_load_config_region_defaults_to_none(monkeypatch):
+    monkeypatch.delenv("ASO_REGION", raising=False)
+
+    config = load_config()
+
+    assert config.region is None
