@@ -10,13 +10,10 @@ from aws_storage_optimizer.models import AnalysisResult, Finding
 
 
 def _format_size(details: dict) -> str:
-    size_gib = details.get("size_gib")
-    if isinstance(size_gib, (int, float)):
-        return f"{size_gib:.2f} GiB"
-
-    approx_size_gib = details.get("approx_size_gib")
-    if isinstance(approx_size_gib, (int, float)):
-        return f"{approx_size_gib:.2f} GiB"
+    for key in ("size_gib", "approx_size_gib"):
+        value = details.get(key)
+        if isinstance(value, (int, float)):
+            return f"{value:.2f} GiB"
 
     return "-"
 
