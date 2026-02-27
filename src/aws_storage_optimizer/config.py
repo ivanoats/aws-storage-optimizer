@@ -81,5 +81,5 @@ def load_config(profile: str | None = None) -> AppConfig:
         mode=_get_env("RETRY_MODE", "standard", profile),
         max_attempts=int(_get_env("RETRY_MAX_ATTEMPTS", "5", profile)),
     )
-    region = os.getenv("ASO_REGION") or None
+    region = os.getenv("ASO_REGION") or "us-west-2"
     return AppConfig(thresholds=thresholds, rates=rates, protection=protection, retry=retry, region=region)

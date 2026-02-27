@@ -26,9 +26,9 @@ def test_load_config_reads_region_from_aso_region(monkeypatch):
     assert config.region == "eu-west-1"
 
 
-def test_load_config_region_defaults_to_none(monkeypatch):
+def test_load_config_region_defaults_to_us_west_2(monkeypatch):
     monkeypatch.delenv("ASO_REGION", raising=False)
 
     config = load_config()
 
-    assert config.region is None
+    assert config.region == "us-west-2"

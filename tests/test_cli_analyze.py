@@ -85,6 +85,25 @@ def test_analyse_is_alias_for_analyze(monkeypatch):
             )
         ],
     )
+    monkeypatch.setattr(cli_module, "analyze_ebs", lambda ec2_client, config, region: [])
+    monkeypatch.setattr(
+        cli_module,
+        "analyze_rds",
+        lambda rds_client, cloudwatch_client, config, region: [],
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli_module.cli,
+        ["analyse", "--services", "s3", "--output-format", "json"],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["findings"][0]["service"] == "s3"
+    assert payload["findings"][0]["resource_id"] == "example-bucket"
+
+
 def test_analyze_uses_aso_region_env_var(monkeypatch):
     monkeypatch.setenv("ASO_REGION", "ap-southeast-1")
 
@@ -134,13 +153,6 @@ def test_analyze_cli_region_flag_overrides_aso_region_env_var(monkeypatch):
     runner = CliRunner()
     result = runner.invoke(
         cli_module.cli,
-        ["analyse", "--services", "s3", "--output-format", "json"],
-    )
-
-    assert result.exit_code == 0
-    payload = json.loads(result.output)
-    assert payload["findings"][0]["service"] == "s3"
-    assert payload["findings"][0]["resource_id"] == "example-bucket"
         ["--region", "us-west-2", "analyze", "--services", "s3", "--output-format", "json"],
     )
 
