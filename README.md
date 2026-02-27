@@ -49,7 +49,7 @@ aso analyze --rds-cpu-threshold 10 --rds-lookback-days 14 --s3-stale-days 120
 
 Optional environment overrides:
 ```bash
-export ASO_REGION=us-east-1
+export ASO_REGION=us-west-2
 export ASO_RETRY_MODE=standard
 export ASO_RETRY_MAX_ATTEMPTS=5
 export ASO_PROTECTION_TAG_KEY=DoNotTouch
@@ -78,7 +78,7 @@ Action outcomes are appended to `artifacts/action-results.jsonl` by default.
 
 ## Global Options
 ```bash
-aso --profile my-aws-profile --region us-east-1 analyze
+aso --profile my-aws-profile --region us-west-2 analyze
 ```
 
 ## Optional zsh aliases/functions
