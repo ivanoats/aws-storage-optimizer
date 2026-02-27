@@ -34,6 +34,9 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --cov=aws_storage_optimizer --cov-report=term-missing --cov-report=xml:artifacts/coverage.xml --cov-report=html:artifacts/htmlcov"
+markers = [
+  "integration: sandbox/integration tests requiring explicit opt-in"
+]
 
 [tool.pylint.main]
 py-version = "3.10"

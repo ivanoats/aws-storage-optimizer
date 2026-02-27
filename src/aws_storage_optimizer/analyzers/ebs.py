@@ -4,6 +4,7 @@ from botocore.exceptions import BotoCoreError, ClientError
 
 from aws_storage_optimizer.config import AppConfig
 from aws_storage_optimizer.models import Finding
+from aws_storage_optimizer.utils import has_protection_tag
 
 
 def analyze_ebs(ec2_client, config: AppConfig, region: str | None) -> list[Finding]:
@@ -14,6 +15,10 @@ def analyze_ebs(ec2_client, config: AppConfig, region: str | None) -> list[Findi
         return findings
 
     for volume in response.get("Volumes", []):
+        tags = volume.get("Tags", [])
+        if has_protection_tag(tags, config.protection.tag_key, config.protection.tag_value):
+            continue
+
         size_gib = int(volume.get("Size", 0))
         volume_type = str(volume.get("VolumeType", "gp3"))
         estimated_savings = round(size_gib * config.rates.ebs_gp3_per_gib_month_usd, 2)

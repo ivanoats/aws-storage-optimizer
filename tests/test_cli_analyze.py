@@ -7,21 +7,29 @@ from aws_storage_optimizer.models import Finding
 
 
 class DummyFactory:
-    def s3(self):
+    @staticmethod
+    def s3():
         return object()
 
-    def ec2(self):
+    @staticmethod
+    def ec2():
         return object()
 
-    def rds(self):
+    @staticmethod
+    def rds():
         return object()
 
-    def cloudwatch(self):
+    @staticmethod
+    def cloudwatch():
         return object()
 
 
 def test_analyze_json_output_for_s3(monkeypatch):
-    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region: DummyFactory())
+    monkeypatch.setattr(
+        cli_module,
+        "AWSClientFactory",
+        lambda profile, region, config=None: DummyFactory(),
+    )
     monkeypatch.setattr(
         cli_module,
         "analyze_s3",

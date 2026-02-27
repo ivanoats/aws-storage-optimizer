@@ -10,6 +10,12 @@ Alias:
 - `--profile TEXT`: AWS profile name (optional)
 - `--region TEXT`: AWS region override (optional)
 
+Relevant environment settings:
+- `ASO_RETRY_MODE` (default: `standard`)
+- `ASO_RETRY_MAX_ATTEMPTS` (default: `5`)
+- `ASO_PROTECTION_TAG_KEY` (default: `DoNotTouch`)
+- `ASO_PROTECTION_TAG_VALUE` (default: `true`)
+
 ---
 
 ## 1) `analyze`
@@ -87,6 +93,7 @@ aws-storage-optimizer execute --action-type TYPE --resource-id ID [OPTIONS]
 - In `--dry-run` mode: prints intended action only
 - In non-dry-run mode: executes via AWS API and prints result status
 - Always appends action result logs to `--log-path`
+- Skips execution for resources protected by configured tag key/value
 
 ### Exit Codes
 - `0` action completed (or dry-run simulated)

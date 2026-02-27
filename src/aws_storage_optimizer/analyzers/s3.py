@@ -5,6 +5,21 @@ from botocore.exceptions import BotoCoreError, ClientError
 from aws_storage_optimizer.config import AppConfig
 from aws_storage_optimizer.estimation import estimate_s3_monthly_savings
 from aws_storage_optimizer.models import Finding
+from aws_storage_optimizer.utils import has_protection_tag
+
+
+def _is_protected_bucket(s3_client, bucket_name: str, key: str, value: str) -> bool:
+    try:
+        tagging = s3_client.get_bucket_tagging(Bucket=bucket_name)
+    except ClientError as exc:
+        error_code = str(exc.response.get("Error", {}).get("Code", ""))
+        if error_code in {"NoSuchTagSet", "NoSuchBucket"}:
+            return False
+        return True
+    except BotoCoreError:
+        return True
+
+    return has_protection_tag(tagging.get("TagSet", []), key, value)
 
 
 def analyze_s3(s3_client, config: AppConfig, top_n: int) -> list[Finding]:
@@ -18,6 +33,13 @@ def analyze_s3(s3_client, config: AppConfig, top_n: int) -> list[Finding]:
     for bucket in buckets:
         bucket_name = bucket.get("Name")
         if not bucket_name:
+            continue
+        if _is_protected_bucket(
+            s3_client,
+            bucket_name=bucket_name,
+            key=config.protection.tag_key,
+            value=config.protection.tag_value,
+        ):
             continue
 
         total_size = 0

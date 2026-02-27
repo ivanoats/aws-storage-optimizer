@@ -22,9 +22,23 @@ class EstimationRates:
 
 
 @dataclass
+class ProtectionSettings:
+    tag_key: str = "DoNotTouch"
+    tag_value: str = "true"
+
+
+@dataclass
+class RetrySettings:
+    mode: str = "standard"
+    max_attempts: int = 5
+
+
+@dataclass
 class AppConfig:
     thresholds: Thresholds
     rates: EstimationRates
+    protection: ProtectionSettings
+    retry: RetrySettings
 
 
 def _profile_env_key(profile: str | None, name: str) -> str | None:
@@ -58,4 +72,12 @@ def load_config(profile: str | None = None) -> AppConfig:
         rds_default_monthly_cost_usd=float(_get_env("RDS_DEFAULT_MONTHLY_COST_USD", "120", profile)),
         rds_estimated_downsize_ratio=float(_get_env("RDS_ESTIMATED_DOWNSIZE_RATIO", "0.25", profile)),
     )
-    return AppConfig(thresholds=thresholds, rates=rates)
+    protection = ProtectionSettings(
+        tag_key=_get_env("PROTECTION_TAG_KEY", "DoNotTouch", profile),
+        tag_value=_get_env("PROTECTION_TAG_VALUE", "true", profile),
+    )
+    retry = RetrySettings(
+        mode=_get_env("RETRY_MODE", "standard", profile),
+        max_attempts=int(_get_env("RETRY_MAX_ATTEMPTS", "5", profile)),
+    )
+    return AppConfig(thresholds=thresholds, rates=rates, protection=protection, retry=retry)
