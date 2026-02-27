@@ -64,6 +64,27 @@ def test_analyze_json_output_for_s3(monkeypatch):
     assert payload["findings"][0]["resource_id"] == "example-bucket"
 
 
+def test_analyse_is_alias_for_analyze(monkeypatch):
+    monkeypatch.setattr(
+        cli_module,
+        "AWSClientFactory",
+        lambda profile, region, config=None: DummyFactory(),
+    )
+    monkeypatch.setattr(
+        cli_module,
+        "analyze_s3",
+        lambda s3_client, config, top_n: [
+            Finding(
+                service="s3",
+                resource_id="example-bucket",
+                region=None,
+                recommendation="Review lifecycle policy",
+                estimated_monthly_savings_usd=0.0,
+                risk_level="medium",
+                details={"approx_size_gib": 12.5},
+            )
+        ],
+    )
 def test_analyze_uses_aso_region_env_var(monkeypatch):
     monkeypatch.setenv("ASO_REGION", "ap-southeast-1")
 
@@ -113,6 +134,13 @@ def test_analyze_cli_region_flag_overrides_aso_region_env_var(monkeypatch):
     runner = CliRunner()
     result = runner.invoke(
         cli_module.cli,
+        ["analyse", "--services", "s3", "--output-format", "json"],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["findings"][0]["service"] == "s3"
+    assert payload["findings"][0]["resource_id"] == "example-bucket"
         ["--region", "us-west-2", "analyze", "--services", "s3", "--output-format", "json"],
     )
 
