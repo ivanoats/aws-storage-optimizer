@@ -80,3 +80,47 @@ def test_client_factory_defaults_retry_config_when_no_app_config(monkeypatch):
     retry_cfg = cloudwatch_client["config"].retries
     assert retry_cfg["mode"] == "standard"
     assert retry_cfg["max_attempts"] == 5
+
+
+def test_client_factory_uses_config_region_when_region_arg_missing(monkeypatch):
+    captured = {}
+
+    def fake_session(**kwargs):
+        captured["session"] = SessionSpy(**kwargs)
+        return captured["session"]
+
+    monkeypatch.setattr("aws_storage_optimizer.aws_clients.boto3.Session", fake_session)
+
+    app_config = AppConfig(
+        thresholds=Thresholds(),
+        rates=EstimationRates(),
+        protection=ProtectionSettings(),
+        retry=RetrySettings(),
+        region="eu-west-1",
+    )
+
+    AWSClientFactory(profile=None, region=None, config=app_config)
+    session_spy = captured["session"]
+    assert session_spy.kwargs["region_name"] == "eu-west-1"
+
+
+def test_client_factory_prefers_explicit_region_over_config_region(monkeypatch):
+    captured = {}
+
+    def fake_session(**kwargs):
+        captured["session"] = SessionSpy(**kwargs)
+        return captured["session"]
+
+    monkeypatch.setattr("aws_storage_optimizer.aws_clients.boto3.Session", fake_session)
+
+    app_config = AppConfig(
+        thresholds=Thresholds(),
+        rates=EstimationRates(),
+        protection=ProtectionSettings(),
+        retry=RetrySettings(),
+        region="eu-west-1",
+    )
+
+    AWSClientFactory(profile=None, region="us-east-2", config=app_config)
+    session_spy = captured["session"]
+    assert session_spy.kwargs["region_name"] == "us-east-2"
