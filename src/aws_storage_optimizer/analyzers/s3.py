@@ -12,11 +12,11 @@ def _is_protected_bucket(s3_client, bucket_name: str, key: str, value: str) -> b
         tagging = s3_client.get_bucket_tagging(Bucket=bucket_name)
     except ClientError as exc:
         error_code = str(exc.response.get("Error", {}).get("Code", ""))
-        if error_code in {"NoSuchTagSet", "NoSuchBucket", "AccessDenied"}:
+        if error_code in {"NoSuchTagSet", "NoSuchBucket"}:
             return False
-        return False
+        return True
     except BotoCoreError:
-        return False
+        return True
 
     expected = value.strip().lower()
     for tag in tagging.get("TagSet", []):
