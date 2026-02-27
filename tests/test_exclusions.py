@@ -108,6 +108,22 @@ def test_execute_action_skips_protected_ebs_resource():
     assert "protected" in result.message.lower()
 
 
+def test_execute_action_skips_protected_rds_resource():
+    result = execute_action(
+        action_type="resize-rds-instance",
+        resource_id="db-protected",
+        dry_run=False,
+        yes=True,
+        ec2_client=ProtectedEC2Client(),
+        s3_client=ProtectedS3Client(),
+        rds_client=ProtectedRDSClient(),
+        target_class="db.t3.small",
+    )
+
+    assert result.status == "skipped"
+    assert "protected" in result.message.lower()
+
+
 def test_protection_allows_missing_tagset_for_s3():
     class UntaggedS3Client(ProtectedS3Client):
         def get_bucket_tagging(self, **kwargs):
