@@ -124,6 +124,23 @@ def test_execute_action_skips_protected_rds_resource():
     assert "protected" in result.message.lower()
 
 
+def test_execute_action_skips_protected_s3_resource():
+    result = execute_action(
+        action_type="delete-s3-object",
+        resource_id="protected-bucket/some-key",
+        dry_run=False,
+        yes=True,
+        ec2_client=ProtectedEC2Client(),
+        s3_client=ProtectedS3Client(),
+        rds_client=ProtectedRDSClient(),
+        bucket="protected-bucket",
+        key="some-key",
+    )
+
+    assert result.status == "skipped"
+    assert "protected" in result.message.lower()
+
+
 def test_protection_allows_missing_tagset_for_s3():
     class UntaggedS3Client(ProtectedS3Client):
         def get_bucket_tagging(self, **kwargs):
@@ -134,3 +151,27 @@ def test_protection_allows_missing_tagset_for_s3():
 
     findings = analyze_s3(UntaggedS3Client(), config=load_config(), top_n=10)
     assert len(findings) == 1
+
+
+def test_s3_access_denied_on_tags_treated_as_protected():
+    class AccessDeniedS3Client(ProtectedS3Client):
+        def get_bucket_tagging(self, **kwargs):
+            raise ClientError(
+                error_response={"Error": {"Code": "AccessDenied", "Message": "Access Denied"}},
+                operation_name="GetBucketTagging",
+            )
+
+    result = execute_action(
+        action_type="delete-s3-object",
+        resource_id="protected-bucket/some-key",
+        dry_run=False,
+        yes=True,
+        ec2_client=ProtectedEC2Client(),
+        s3_client=AccessDeniedS3Client(),
+        rds_client=ProtectedRDSClient(),
+        bucket="protected-bucket",
+        key="some-key",
+    )
+
+    assert result.status == "skipped"
+    assert "protected" in result.message.lower()
