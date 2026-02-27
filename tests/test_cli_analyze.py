@@ -7,16 +7,20 @@ from aws_storage_optimizer.models import Finding
 
 
 class DummyFactory:
-    def s3(self):
+    @staticmethod
+    def s3():
         return object()
 
-    def ec2(self):
+    @staticmethod
+    def ec2():
         return object()
 
-    def rds(self):
+    @staticmethod
+    def rds():
         return object()
 
-    def cloudwatch(self):
+    @staticmethod
+    def cloudwatch():
         return object()
 
 

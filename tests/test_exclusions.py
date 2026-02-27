@@ -8,7 +8,8 @@ from aws_storage_optimizer.config import load_config
 
 
 class ProtectedEC2Client:
-    def describe_volumes(self, **kwargs):
+    @staticmethod
+    def describe_volumes(**kwargs):
         volume_ids = kwargs.get("VolumeIds")
         if volume_ids:
             return {
@@ -30,26 +31,32 @@ class ProtectedEC2Client:
             ]
         }
 
-    def delete_volume(self, **kwargs):
+    @staticmethod
+    def delete_volume(**kwargs):
         raise AssertionError("Protected volume should not be deleted")
 
 
 class ProtectedS3Client:
-    def list_buckets(self):
+    @staticmethod
+    def list_buckets():
         return {"Buckets": [{"Name": "protected-bucket"}]}
 
-    def get_bucket_tagging(self, **_kwargs):
+    @staticmethod
+    def get_bucket_tagging(**_kwargs):
         return {"TagSet": [{"Key": "DoNotTouch", "Value": "true"}]}
 
-    def list_objects_v2(self, **_kwargs):
+    @staticmethod
+    def list_objects_v2(**_kwargs):
         return {"Contents": [{"Size": 1024}], "NextContinuationToken": None}
 
-    def delete_object(self, **kwargs):
+    @staticmethod
+    def delete_object(**kwargs):
         raise AssertionError("Protected bucket object should not be deleted")
 
 
 class ProtectedRDSClient:
-    def describe_db_instances(self, **kwargs):
+    @staticmethod
+    def describe_db_instances(**kwargs):
         db_instance_identifier = kwargs.get("DBInstanceIdentifier", "db-protected")
         return {
             "DBInstances": [
@@ -61,15 +68,18 @@ class ProtectedRDSClient:
             ]
         }
 
-    def list_tags_for_resource(self, **_kwargs):
+    @staticmethod
+    def list_tags_for_resource(**_kwargs):
         return {"TagList": [{"Key": "DoNotTouch", "Value": "true"}]}
 
-    def modify_db_instance(self, **_kwargs):
+    @staticmethod
+    def modify_db_instance(**_kwargs):
         raise AssertionError("Protected RDS instance should not be modified")
 
 
 class DummyCloudWatchClient:
-    def get_metric_statistics(self, **_kwargs):
+    @staticmethod
+    def get_metric_statistics(**_kwargs):
         return {"Datapoints": [{"Average": 5.0}]}
 
 
@@ -143,7 +153,8 @@ def test_execute_action_skips_protected_s3_resource():
 
 def test_protection_allows_missing_tagset_for_s3():
     class UntaggedS3Client(ProtectedS3Client):
-        def get_bucket_tagging(self, **kwargs):
+        @staticmethod
+        def get_bucket_tagging(**kwargs):
             raise ClientError(
                 error_response={"Error": {"Code": "NoSuchTagSet", "Message": "No tags"}},
                 operation_name="GetBucketTagging",
@@ -155,7 +166,8 @@ def test_protection_allows_missing_tagset_for_s3():
 
 def test_s3_access_denied_on_tags_treated_as_protected():
     class AccessDeniedS3Client(ProtectedS3Client):
-        def get_bucket_tagging(self, **kwargs):
+        @staticmethod
+        def get_bucket_tagging(**kwargs):
             raise ClientError(
                 error_response={"Error": {"Code": "AccessDenied", "Message": "Access Denied"}},
                 operation_name="GetBucketTagging",
