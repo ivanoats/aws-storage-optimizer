@@ -18,6 +18,9 @@ class DummyFactory:
 
 
 class SuccessEC2Client:
+    def describe_volumes(self, **kwargs):
+        return {"Volumes": [{"VolumeId": kwargs.get("VolumeIds", [""])[0], "Tags": []}]}
+
     def delete_volume(self, **kwargs):
         volume_id = kwargs.get("VolumeId")
         return {"VolumeId": volume_id}
@@ -35,6 +38,9 @@ class SuccessFactory:
 
 
 class FailingEC2Client:
+    def describe_volumes(self, **kwargs):
+        return {"Volumes": [{"VolumeId": kwargs.get("VolumeIds", [""])[0], "Tags": []}]}
+
     def delete_volume(self, **kwargs):
         raise ClientError(
             error_response={
@@ -59,6 +65,12 @@ class FailingFactory:
 
 
 class FailingS3Client:
+    def get_bucket_tagging(self, **_kwargs):
+        raise ClientError(
+            error_response={"Error": {"Code": "NoSuchTagSet", "Message": "No tags"}},
+            operation_name="GetBucketTagging",
+        )
+
     def delete_object(self, **kwargs):
         raise ClientError(
             error_response={
@@ -83,6 +95,20 @@ class FailingS3Factory:
 
 
 class FailingRDSClient:
+    def describe_db_instances(self, **kwargs):
+        db_instance_identifier = kwargs.get("DBInstanceIdentifier", "db-instance-1")
+        return {
+            "DBInstances": [
+                {
+                    "DBInstanceIdentifier": db_instance_identifier,
+                    "DBInstanceArn": f"arn:aws:rds:us-east-1:123456789012:db:{db_instance_identifier}",
+                }
+            ]
+        }
+
+    def list_tags_for_resource(self, **_kwargs):
+        return {"TagList": []}
+
     def modify_db_instance(self, **kwargs):
         raise ClientError(
             error_response={
@@ -107,7 +133,7 @@ class FailingRDSFactory:
 
 
 def test_execute_dry_run_succeeds(monkeypatch):
-    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region: DummyFactory())
+    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region, config=None: DummyFactory())
 
     runner = CliRunner()
     result = runner.invoke(
@@ -128,7 +154,7 @@ def test_execute_dry_run_succeeds(monkeypatch):
 
 
 def test_execute_delete_s3_object_requires_bucket_and_key(monkeypatch):
-    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region: DummyFactory())
+    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region, config=None: DummyFactory())
 
     runner = CliRunner()
     result = runner.invoke(
@@ -148,7 +174,7 @@ def test_execute_delete_s3_object_requires_bucket_and_key(monkeypatch):
 
 
 def test_execute_dry_run_writes_action_log(monkeypatch, tmp_path):
-    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region: DummyFactory())
+    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region, config=None: DummyFactory())
 
     runner = CliRunner()
     log_path = tmp_path / "action-results.jsonl"
@@ -177,7 +203,7 @@ def test_execute_dry_run_writes_action_log(monkeypatch, tmp_path):
 
 
 def test_execute_no_dry_run_requires_yes(monkeypatch):
-    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region: DummyFactory())
+    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region, config=None: DummyFactory())
 
     runner = CliRunner()
     result = runner.invoke(
@@ -197,7 +223,11 @@ def test_execute_no_dry_run_requires_yes(monkeypatch):
 
 
 def test_execute_no_dry_run_with_yes_succeeds(monkeypatch):
-    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region: SuccessFactory())
+    monkeypatch.setattr(
+        cli_module,
+        "AWSClientFactory",
+        lambda profile, region, config=None: SuccessFactory(),
+    )
 
     runner = CliRunner()
     result = runner.invoke(
@@ -219,7 +249,7 @@ def test_execute_no_dry_run_with_yes_succeeds(monkeypatch):
 
 
 def test_execute_no_dry_run_with_yes_handles_aws_error(monkeypatch):
-    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region: FailingFactory())
+    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region, config=None: FailingFactory())
 
     runner = CliRunner()
     result = runner.invoke(
@@ -241,7 +271,11 @@ def test_execute_no_dry_run_with_yes_handles_aws_error(monkeypatch):
 
 
 def test_execute_delete_s3_object_handles_aws_error(monkeypatch):
-    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region: FailingS3Factory())
+    monkeypatch.setattr(
+        cli_module,
+        "AWSClientFactory",
+        lambda profile, region, config=None: FailingS3Factory(),
+    )
 
     runner = CliRunner()
     result = runner.invoke(
@@ -267,7 +301,11 @@ def test_execute_delete_s3_object_handles_aws_error(monkeypatch):
 
 
 def test_execute_resize_rds_instance_handles_aws_error(monkeypatch):
-    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region: FailingRDSFactory())
+    monkeypatch.setattr(
+        cli_module,
+        "AWSClientFactory",
+        lambda profile, region, config=None: FailingRDSFactory(),
+    )
 
     runner = CliRunner()
     result = runner.invoke(

@@ -31,7 +31,7 @@ def prioritize_findings(findings: list[Finding]) -> list[Finding]:
         findings,
         key=lambda item: (
             -_priority_score(item),
-            -item.estimated_monthly_savings_usd,
+            -max(item.estimated_monthly_savings_usd, 0.0),
             item.service,
         ),
     )

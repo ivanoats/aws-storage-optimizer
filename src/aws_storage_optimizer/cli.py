@@ -78,7 +78,7 @@ def analyze(
         config.thresholds.s3_stale_days = s3_stale_days
 
     selected = set(services) if services else {"s3", "ebs", "rds"}
-    client_factory = AWSClientFactory(profile=profile, region=region)
+    client_factory = AWSClientFactory(profile=profile, region=region, config=config)
 
     findings = []
     if "s3" in selected:
@@ -161,7 +161,8 @@ def execute(
     if action_type == "resize-rds-instance" and not target_class:
         raise click.ClickException("--target-class is required for resize-rds-instance")
 
-    clients = AWSClientFactory(profile=profile, region=region)
+    config = ctx.obj["config"]
+    clients = AWSClientFactory(profile=profile, region=region, config=config)
 
     result = execute_action(
         action_type=action_type,
@@ -174,6 +175,8 @@ def execute(
         bucket=bucket,
         key=key,
         target_class=target_class,
+        protection_tag_key=config.protection.tag_key,
+        protection_tag_value=config.protection.tag_value,
     )
     _append_action_log(result, log_path)
     click.echo(f"[{result.status}] {result.action_type} {result.resource_id}: {result.message}")

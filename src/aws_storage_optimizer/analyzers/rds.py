@@ -9,6 +9,14 @@ from aws_storage_optimizer.estimation import estimate_rds_monthly_savings
 from aws_storage_optimizer.models import Finding
 
 
+def _is_protected(tags: list[dict], key: str, value: str) -> bool:
+    expected = value.strip().lower()
+    for tag in tags:
+        if str(tag.get("Key", "")) == key and str(tag.get("Value", "")).strip().lower() == expected:
+            return True
+    return False
+
+
 def _avg_cpu(cloudwatch_client, db_instance_identifier: str, lookback_days: int) -> float | None:
     end_time = datetime.now(timezone.utc)
     start_time = end_time - timedelta(days=lookback_days)
@@ -41,6 +49,18 @@ def analyze_rds(rds_client, cloudwatch_client, config: AppConfig, region: str | 
 
     for instance in response.get("DBInstances", []):
         db_identifier = str(instance.get("DBInstanceIdentifier"))
+        db_arn = str(instance.get("DBInstanceArn", ""))
+        try:
+            tag_response = rds_client.list_tags_for_resource(ResourceName=db_arn)
+            if _is_protected(
+                tag_response.get("TagList", []),
+                config.protection.tag_key,
+                config.protection.tag_value,
+            ):
+                continue
+        except (BotoCoreError, ClientError):
+            pass
+
         avg_cpu = _avg_cpu(
             cloudwatch_client=cloudwatch_client,
             db_instance_identifier=db_identifier,

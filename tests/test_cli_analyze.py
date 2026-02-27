@@ -21,7 +21,11 @@ class DummyFactory:
 
 
 def test_analyze_json_output_for_s3(monkeypatch):
-    monkeypatch.setattr(cli_module, "AWSClientFactory", lambda profile, region: DummyFactory())
+    monkeypatch.setattr(
+        cli_module,
+        "AWSClientFactory",
+        lambda profile, region, config=None: DummyFactory(),
+    )
     monkeypatch.setattr(
         cli_module,
         "analyze_s3",

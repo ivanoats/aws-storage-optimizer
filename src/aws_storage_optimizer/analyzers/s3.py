@@ -7,6 +7,24 @@ from aws_storage_optimizer.estimation import estimate_s3_monthly_savings
 from aws_storage_optimizer.models import Finding
 
 
+def _is_protected_bucket(s3_client, bucket_name: str, key: str, value: str) -> bool:
+    try:
+        tagging = s3_client.get_bucket_tagging(Bucket=bucket_name)
+    except ClientError as exc:
+        error_code = str(exc.response.get("Error", {}).get("Code", ""))
+        if error_code in {"NoSuchTagSet", "NoSuchBucket", "AccessDenied"}:
+            return False
+        return False
+    except BotoCoreError:
+        return False
+
+    expected = value.strip().lower()
+    for tag in tagging.get("TagSet", []):
+        if str(tag.get("Key", "")) == key and str(tag.get("Value", "")).strip().lower() == expected:
+            return True
+    return False
+
+
 def analyze_s3(s3_client, config: AppConfig, top_n: int) -> list[Finding]:
     findings: list[Finding] = []
     try:
@@ -18,6 +36,13 @@ def analyze_s3(s3_client, config: AppConfig, top_n: int) -> list[Finding]:
     for bucket in buckets:
         bucket_name = bucket.get("Name")
         if not bucket_name:
+            continue
+        if _is_protected_bucket(
+            s3_client,
+            bucket_name=bucket_name,
+            key=config.protection.tag_key,
+            value=config.protection.tag_value,
+        ):
             continue
 
         total_size = 0

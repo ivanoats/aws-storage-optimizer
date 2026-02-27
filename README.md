@@ -47,6 +47,14 @@ Optional per-run threshold overrides:
 aso analyze --rds-cpu-threshold 10 --rds-lookback-days 14 --s3-stale-days 120
 ```
 
+Optional environment overrides:
+```bash
+export ASO_RETRY_MODE=standard
+export ASO_RETRY_MAX_ATTEMPTS=5
+export ASO_PROTECTION_TAG_KEY=DoNotTouch
+export ASO_PROTECTION_TAG_VALUE=true
+```
+
 ### 3. Save and re-render report
 ```bash
 aso analyze --save artifacts/findings.json --output-format json
@@ -120,6 +128,11 @@ pylint src/aws_storage_optimizer tests
 Run tests with coverage reports:
 ```bash
 pytest
+```
+
+Run sandbox integration smoke test (opt-in):
+```bash
+ASO_RUN_SANDBOX_TESTS=1 AWS_PROFILE=my-profile AWS_REGION=us-east-1 pytest -m integration
 ```
 
 Coverage outputs:

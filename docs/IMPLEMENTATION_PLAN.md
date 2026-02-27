@@ -40,7 +40,7 @@ Build a safe, operator-friendly CLI that identifies AWS storage cost optimizatio
 - Phase 1: Completed
 - Phase 2: Completed
 - Phase 3: Completed
-- Phase 4: Not started
+- Phase 4: Completed
 
 ### Phase 1 - Read-only Analyzer (MVP baseline)
 - Implement `analyze` command for S3, EBS, RDS
@@ -75,6 +75,11 @@ Delivered:
 - Add retries/backoff for API calls
 - Add optional tag-based exclusions (`DoNotTouch=true`)
 - Add integration tests against sandbox account
+
+Delivered:
+- Added client retry/backoff configuration via botocore retry settings (`ASO_RETRY_MODE`, `ASO_RETRY_MAX_ATTEMPTS`)
+- Added protected-tag exclusions for S3/EBS/RDS analysis and execute actions (defaults: `DoNotTouch=true`)
+- Added opt-in sandbox integration smoke test (`tests/test_integration_sandbox.py`)
 
 ## Heuristic Rules (Initial)
 
