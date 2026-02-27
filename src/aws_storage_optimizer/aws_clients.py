@@ -11,8 +11,8 @@ class AWSClientFactory:
         session_args: dict[str, str] = {}
         if profile:
             session_args["profile_name"] = profile
-        if region:
-            session_args["region_name"] = region
+        resolved_region = region or (config.region if config else None) or "us-west-2"
+        session_args["region_name"] = resolved_region
         self.session = boto3.Session(**session_args)
         retry_mode = "standard"
         retry_max_attempts = 5

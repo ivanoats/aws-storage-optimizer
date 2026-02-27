@@ -72,6 +72,9 @@ def test_client_factory_defaults_retry_config_when_no_app_config(monkeypatch):
     monkeypatch.setattr("aws_storage_optimizer.aws_clients.boto3.Session", fake_session)
 
     factory = AWSClientFactory(profile=None, region=None)
+    session_spy = captured["session"]
+    assert session_spy.kwargs["region_name"] == "us-west-2"
+
     cloudwatch_client = factory.cloudwatch()
 
     retry_cfg = cloudwatch_client["config"].retries
