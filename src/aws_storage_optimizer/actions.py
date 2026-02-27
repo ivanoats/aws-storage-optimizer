@@ -3,14 +3,7 @@ from __future__ import annotations
 from botocore.exceptions import BotoCoreError, ClientError
 
 from aws_storage_optimizer.models import ActionResult
-
-
-def _has_protection_tag(tags: list[dict], tag_key: str, tag_value: str) -> bool:
-    expected_value = tag_value.strip().lower()
-    for tag in tags:
-        if str(tag.get("Key", "")) == tag_key and str(tag.get("Value", "")).strip().lower() == expected_value:
-            return True
-    return False
+from aws_storage_optimizer.utils import has_protection_tag
 
 
 def _is_protected_ebs_volume(ec2_client, volume_id: str, tag_key: str, tag_value: str) -> bool:
@@ -18,7 +11,7 @@ def _is_protected_ebs_volume(ec2_client, volume_id: str, tag_key: str, tag_value
     volumes = response.get("Volumes", [])
     if not volumes:
         return False
-    return _has_protection_tag(volumes[0].get("Tags", []), tag_key, tag_value)
+    return has_protection_tag(volumes[0].get("Tags", []), tag_key, tag_value)
 
 
 def _is_protected_s3_bucket(s3_client, bucket: str, tag_key: str, tag_value: str) -> bool:
@@ -31,7 +24,7 @@ def _is_protected_s3_bucket(s3_client, bucket: str, tag_key: str, tag_value: str
         if error_code == "AccessDenied":
             return True
         raise
-    return _has_protection_tag(tagging.get("TagSet", []), tag_key, tag_value)
+    return has_protection_tag(tagging.get("TagSet", []), tag_key, tag_value)
 
 
 def _is_protected_rds_instance(rds_client, db_instance_id: str, tag_key: str, tag_value: str) -> bool:
@@ -43,7 +36,7 @@ def _is_protected_rds_instance(rds_client, db_instance_id: str, tag_key: str, ta
     if not db_arn:
         return False
     tags = rds_client.list_tags_for_resource(ResourceName=db_arn).get("TagList", [])
-    return _has_protection_tag(tags, tag_key, tag_value)
+    return has_protection_tag(tags, tag_key, tag_value)
 
 
 def execute_action(

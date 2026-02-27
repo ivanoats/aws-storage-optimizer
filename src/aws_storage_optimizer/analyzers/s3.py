@@ -5,6 +5,7 @@ from botocore.exceptions import BotoCoreError, ClientError
 from aws_storage_optimizer.config import AppConfig
 from aws_storage_optimizer.estimation import estimate_s3_monthly_savings
 from aws_storage_optimizer.models import Finding
+from aws_storage_optimizer.utils import has_protection_tag
 
 
 def _is_protected_bucket(s3_client, bucket_name: str, key: str, value: str) -> bool:
@@ -18,11 +19,7 @@ def _is_protected_bucket(s3_client, bucket_name: str, key: str, value: str) -> b
     except BotoCoreError:
         return True
 
-    expected = value.strip().lower()
-    for tag in tagging.get("TagSet", []):
-        if str(tag.get("Key", "")) == key and str(tag.get("Value", "")).strip().lower() == expected:
-            return True
-    return False
+    return has_protection_tag(tagging.get("TagSet", []), key, value)
 
 
 def analyze_s3(s3_client, config: AppConfig, top_n: int) -> list[Finding]:

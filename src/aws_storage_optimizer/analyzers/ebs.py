@@ -4,16 +4,7 @@ from botocore.exceptions import BotoCoreError, ClientError
 
 from aws_storage_optimizer.config import AppConfig
 from aws_storage_optimizer.models import Finding
-
-
-def _is_protected(tags: list[dict], key: str, value: str) -> bool:
-    normalized_expected = value.strip().lower()
-    for tag in tags:
-        tag_key = str(tag.get("Key", ""))
-        tag_value = str(tag.get("Value", "")).strip().lower()
-        if tag_key == key and tag_value == normalized_expected:
-            return True
-    return False
+from aws_storage_optimizer.utils import has_protection_tag
 
 
 def analyze_ebs(ec2_client, config: AppConfig, region: str | None) -> list[Finding]:
@@ -25,7 +16,7 @@ def analyze_ebs(ec2_client, config: AppConfig, region: str | None) -> list[Findi
 
     for volume in response.get("Volumes", []):
         tags = volume.get("Tags", [])
-        if _is_protected(tags, config.protection.tag_key, config.protection.tag_value):
+        if has_protection_tag(tags, config.protection.tag_key, config.protection.tag_value):
             continue
 
         size_gib = int(volume.get("Size", 0))

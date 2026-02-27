@@ -7,14 +7,7 @@ from botocore.exceptions import BotoCoreError, ClientError
 from aws_storage_optimizer.config import AppConfig
 from aws_storage_optimizer.estimation import estimate_rds_monthly_savings
 from aws_storage_optimizer.models import Finding
-
-
-def _is_protected(tags: list[dict], key: str, value: str) -> bool:
-    expected = value.strip().lower()
-    for tag in tags:
-        if str(tag.get("Key", "")) == key and str(tag.get("Value", "")).strip().lower() == expected:
-            return True
-    return False
+from aws_storage_optimizer.utils import has_protection_tag
 
 
 def _avg_cpu(cloudwatch_client, db_instance_identifier: str, lookback_days: int) -> float | None:
@@ -53,7 +46,7 @@ def analyze_rds(rds_client, cloudwatch_client, config: AppConfig, region: str | 
         if db_arn:
             try:
                 tag_response = rds_client.list_tags_for_resource(ResourceName=db_arn)
-                if _is_protected(
+                if has_protection_tag(
                     tag_response.get("TagList", []),
                     config.protection.tag_key,
                     config.protection.tag_value,
