@@ -6,6 +6,9 @@ from aws_storage_optimizer.models import ActionResult
 from aws_storage_optimizer.utils import has_protection_tag
 
 
+RESOURCE_PROTECTED_MESSAGE = "Resource protected by tag"
+
+
 def _is_protected_ebs_volume(ec2_client, volume_id: str, tag_key: str, tag_value: str) -> bool:
     response = ec2_client.describe_volumes(VolumeIds=[volume_id])
     volumes = response.get("Volumes", [])
@@ -39,6 +42,71 @@ def _is_protected_rds_instance(rds_client, db_instance_id: str, tag_key: str, ta
     return has_protection_tag(tags, tag_key, tag_value)
 
 
+def _handle_delete_ebs_volume(
+    action_type: str,
+    resource_id: str,
+    ec2_client,
+    protection_tag_key: str,
+    protection_tag_value: str,
+) -> ActionResult:
+    if _is_protected_ebs_volume(
+        ec2_client,
+        volume_id=resource_id,
+        tag_key=protection_tag_key,
+        tag_value=protection_tag_value,
+    ):
+        return ActionResult(action_type, resource_id, "skipped", RESOURCE_PROTECTED_MESSAGE)
+    ec2_client.delete_volume(VolumeId=resource_id)
+    return ActionResult(action_type, resource_id, "success", "EBS volume deleted")
+
+
+def _handle_delete_s3_object(
+    action_type: str,
+    resource_id: str,
+    s3_client,
+    bucket: str | None,
+    key: str | None,
+    protection_tag_key: str,
+    protection_tag_value: str,
+) -> ActionResult:
+    if not bucket or not key:
+        return ActionResult(action_type, resource_id, "failed", "--bucket and --key are required")
+    if _is_protected_s3_bucket(
+        s3_client,
+        bucket=bucket,
+        tag_key=protection_tag_key,
+        tag_value=protection_tag_value,
+    ):
+        return ActionResult(action_type, resource_id, "skipped", RESOURCE_PROTECTED_MESSAGE)
+    s3_client.delete_object(Bucket=bucket, Key=key)
+    return ActionResult(action_type, resource_id, "success", "S3 object deleted")
+
+
+def _handle_resize_rds_instance(
+    action_type: str,
+    resource_id: str,
+    rds_client,
+    target_class: str | None,
+    protection_tag_key: str,
+    protection_tag_value: str,
+) -> ActionResult:
+    if not target_class:
+        return ActionResult(action_type, resource_id, "failed", "--target-class is required")
+    if _is_protected_rds_instance(
+        rds_client,
+        db_instance_id=resource_id,
+        tag_key=protection_tag_key,
+        tag_value=protection_tag_value,
+    ):
+        return ActionResult(action_type, resource_id, "skipped", RESOURCE_PROTECTED_MESSAGE)
+    rds_client.modify_db_instance(
+        DBInstanceIdentifier=resource_id,
+        DBInstanceClass=target_class,
+        ApplyImmediately=False,
+    )
+    return ActionResult(action_type, resource_id, "success", "RDS resize requested")
+
+
 def execute_action(
     action_type: str,
     resource_id: str,
@@ -69,49 +137,39 @@ def execute_action(
             message="Dry-run only. No AWS changes applied.",
         )
 
-    try:
-        if action_type == "delete-ebs-volume":
-            if _is_protected_ebs_volume(
-                ec2_client,
-                volume_id=resource_id,
-                tag_key=protection_tag_key,
-                tag_value=protection_tag_value,
-            ):
-                return ActionResult(action_type, resource_id, "skipped", "Resource protected by tag")
-            ec2_client.delete_volume(VolumeId=resource_id)
-            return ActionResult(action_type, resource_id, "success", "EBS volume deleted")
+    handlers = {
+        "delete-ebs-volume": lambda: _handle_delete_ebs_volume(
+            action_type=action_type,
+            resource_id=resource_id,
+            ec2_client=ec2_client,
+            protection_tag_key=protection_tag_key,
+            protection_tag_value=protection_tag_value,
+        ),
+        "delete-s3-object": lambda: _handle_delete_s3_object(
+            action_type=action_type,
+            resource_id=resource_id,
+            s3_client=s3_client,
+            bucket=bucket,
+            key=key,
+            protection_tag_key=protection_tag_key,
+            protection_tag_value=protection_tag_value,
+        ),
+        "resize-rds-instance": lambda: _handle_resize_rds_instance(
+            action_type=action_type,
+            resource_id=resource_id,
+            rds_client=rds_client,
+            target_class=target_class,
+            protection_tag_key=protection_tag_key,
+            protection_tag_value=protection_tag_value,
+        ),
+    }
 
-        if action_type == "delete-s3-object":
-            if not bucket or not key:
-                return ActionResult(action_type, resource_id, "failed", "--bucket and --key are required")
-            if _is_protected_s3_bucket(
-                s3_client,
-                bucket=bucket,
-                tag_key=protection_tag_key,
-                tag_value=protection_tag_value,
-            ):
-                return ActionResult(action_type, resource_id, "skipped", "Resource protected by tag")
-            s3_client.delete_object(Bucket=bucket, Key=key)
-            return ActionResult(action_type, resource_id, "success", "S3 object deleted")
-
-        if action_type == "resize-rds-instance":
-            if not target_class:
-                return ActionResult(action_type, resource_id, "failed", "--target-class is required")
-            if _is_protected_rds_instance(
-                rds_client,
-                db_instance_id=resource_id,
-                tag_key=protection_tag_key,
-                tag_value=protection_tag_value,
-            ):
-                return ActionResult(action_type, resource_id, "skipped", "Resource protected by tag")
-            rds_client.modify_db_instance(
-                DBInstanceIdentifier=resource_id,
-                DBInstanceClass=target_class,
-                ApplyImmediately=False,
-            )
-            return ActionResult(action_type, resource_id, "success", "RDS resize requested")
-
+    handler = handlers.get(action_type)
+    if handler is None:
         return ActionResult(action_type, resource_id, "failed", "Unsupported action type")
+
+    try:
+        return handler()
 
     except (BotoCoreError, ClientError) as exc:
         return ActionResult(action_type, resource_id, "failed", str(exc))

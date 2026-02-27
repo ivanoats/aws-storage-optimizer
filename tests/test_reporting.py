@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from aws_storage_optimizer.models import AnalysisResult, Finding
 from aws_storage_optimizer.reporting import (
     load_analysis,
@@ -36,7 +38,7 @@ def test_save_and_load_analysis_roundtrip(tmp_path):
     assert loaded.generated_at == result.generated_at
     assert len(loaded.findings) == 1
     assert loaded.findings[0].resource_id == "vol-123"
-    assert loaded.findings[0].estimated_monthly_savings_usd == 8.5
+    assert loaded.findings[0].estimated_monthly_savings_usd == pytest.approx(8.5)
 
 
 def test_print_analysis_json_outputs_valid_json(capsys):
