@@ -49,11 +49,14 @@ aso analyze --rds-cpu-threshold 10 --rds-lookback-days 14 --s3-stale-days 120
 
 Optional environment overrides:
 ```bash
+export ASO_REGION=us-east-1
 export ASO_RETRY_MODE=standard
 export ASO_RETRY_MAX_ATTEMPTS=5
 export ASO_PROTECTION_TAG_KEY=DoNotTouch
 export ASO_PROTECTION_TAG_VALUE=true
 ```
+
+`ASO_REGION` sets the default AWS region and is used when `--region` is not passed on the command line. The `--region` flag always takes precedence over `ASO_REGION`.
 
 ### 3. Save and re-render report
 ```bash

@@ -67,8 +67,8 @@ def analyze(
     s3_stale_days: int | None,
 ) -> None:
     profile = ctx.obj["profile"]
-    region = ctx.obj["region"]
     config = ctx.obj["config"]
+    region = ctx.obj["region"] or config.region
 
     if rds_cpu_threshold is not None:
         config.thresholds.rds_cpu_underutilized_pct = rds_cpu_threshold
@@ -153,7 +153,8 @@ def execute(
     log_path: str,
 ) -> None:
     profile = ctx.obj["profile"]
-    region = ctx.obj["region"]
+    config = ctx.obj["config"]
+    region = ctx.obj["region"] or config.region
 
     if action_type == "delete-s3-object" and (not bucket or not key):
         raise click.ClickException("--bucket and --key are required for delete-s3-object")
@@ -161,7 +162,6 @@ def execute(
     if action_type == "resize-rds-instance" and not target_class:
         raise click.ClickException("--target-class is required for resize-rds-instance")
 
-    config = ctx.obj["config"]
     clients = AWSClientFactory(profile=profile, region=region, config=config)
 
     result = execute_action(

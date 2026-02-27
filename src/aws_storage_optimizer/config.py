@@ -39,6 +39,7 @@ class AppConfig:
     rates: EstimationRates
     protection: ProtectionSettings
     retry: RetrySettings
+    region: str | None = None
 
 
 def _profile_env_key(profile: str | None, name: str) -> str | None:
@@ -80,4 +81,5 @@ def load_config(profile: str | None = None) -> AppConfig:
         mode=_get_env("RETRY_MODE", "standard", profile),
         max_attempts=int(_get_env("RETRY_MAX_ATTEMPTS", "5", profile)),
     )
-    return AppConfig(thresholds=thresholds, rates=rates, protection=protection, retry=retry)
+    region = os.getenv("ASO_REGION") or None
+    return AppConfig(thresholds=thresholds, rates=rates, protection=protection, retry=retry, region=region)
