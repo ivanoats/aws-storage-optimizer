@@ -111,6 +111,9 @@ def analyze(
         click.echo(f"Saved findings to {save_path}")
 
 
+cli.add_command(analyze, name="analyse")
+
+
 @cli.command()
 @click.option("--input", "input_path", required=True, help="Path to findings JSON")
 @click.option("--output-format", type=click.Choice(["table", "json"]), default="table")
