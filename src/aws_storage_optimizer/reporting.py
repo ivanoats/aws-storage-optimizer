@@ -9,12 +9,25 @@ from rich.table import Table
 from aws_storage_optimizer.models import AnalysisResult, Finding
 
 
+def _format_size(details: dict) -> str:
+    size_gib = details.get("size_gib")
+    if isinstance(size_gib, (int, float)):
+        return f"{size_gib:.2f} GiB"
+
+    approx_size_gib = details.get("approx_size_gib")
+    if isinstance(approx_size_gib, (int, float)):
+        return f"{approx_size_gib:.2f} GiB"
+
+    return "-"
+
+
 def print_analysis_table(result: AnalysisResult) -> None:
     console = Console()
     table = Table(title="AWS Storage Optimization Findings")
     table.add_column("Service")
     table.add_column("Resource")
     table.add_column("Region")
+    table.add_column("Size")
     table.add_column("Recommendation")
     table.add_column("Est. $/mo", justify="right")
     table.add_column("Risk")
@@ -24,6 +37,7 @@ def print_analysis_table(result: AnalysisResult) -> None:
             finding.service,
             finding.resource_id,
             finding.region or "-",
+            _format_size(finding.details),
             finding.recommendation,
             f"{finding.estimated_monthly_savings_usd:.2f}",
             finding.risk_level,

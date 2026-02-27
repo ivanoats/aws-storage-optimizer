@@ -22,6 +22,23 @@ def _is_protected_bucket(s3_client, bucket_name: str, key: str, value: str) -> b
     return has_protection_tag(tagging.get("TagSet", []), key, value)
 
 
+def _resolve_bucket_region(s3_client, bucket_name: str) -> str | None:
+    get_bucket_location = getattr(s3_client, "get_bucket_location", None)
+    if not callable(get_bucket_location):
+        return None
+
+    try:
+        location = get_bucket_location(Bucket=bucket_name).get("LocationConstraint")
+    except (BotoCoreError, ClientError):
+        return None
+
+    if location is None:
+        return "us-east-1"
+    if location == "EU":
+        return "eu-west-1"
+    return str(location)
+
+
 def analyze_s3(s3_client, config: AppConfig, top_n: int) -> list[Finding]:
     findings: list[Finding] = []
     try:
@@ -29,7 +46,7 @@ def analyze_s3(s3_client, config: AppConfig, top_n: int) -> list[Finding]:
     except (BotoCoreError, ClientError):
         return findings
 
-    bucket_sizes: list[tuple[str, int]] = []
+    bucket_sizes: list[tuple[str, str | None, int]] = []
     for bucket in buckets:
         bucket_name = bucket.get("Name")
         if not bucket_name:
@@ -43,6 +60,7 @@ def analyze_s3(s3_client, config: AppConfig, top_n: int) -> list[Finding]:
             continue
 
         total_size = 0
+        bucket_region = _resolve_bucket_region(s3_client, bucket_name)
         continuation_token = None
         page_count = 0
         while True:
@@ -62,17 +80,17 @@ def analyze_s3(s3_client, config: AppConfig, top_n: int) -> list[Finding]:
             if not continuation_token or page_count >= 5:
                 break
 
-        bucket_sizes.append((bucket_name, total_size))
+        bucket_sizes.append((bucket_name, bucket_region, total_size))
 
-    bucket_sizes.sort(key=lambda item: item[1], reverse=True)
-    for bucket_name, size_bytes in bucket_sizes[:top_n]:
+    bucket_sizes.sort(key=lambda item: item[2], reverse=True)
+    for bucket_name, bucket_region, size_bytes in bucket_sizes[:top_n]:
         size_gib = round(size_bytes / (1024**3), 2)
         estimated_savings = estimate_s3_monthly_savings(size_gib=size_gib, config=config)
         findings.append(
             Finding(
                 service="s3",
                 resource_id=bucket_name,
-                region=None,
+                region=bucket_region,
                 recommendation="Review lifecycle policy, archive infrequently accessed objects",
                 estimated_monthly_savings_usd=estimated_savings,
                 risk_level="medium",

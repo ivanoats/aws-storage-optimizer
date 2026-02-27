@@ -50,6 +50,10 @@ class ProtectedS3Client:
         return {"Contents": [{"Size": 1024}], "NextContinuationToken": None}
 
     @staticmethod
+    def get_bucket_location(**_kwargs):
+        return {"LocationConstraint": "us-west-2"}
+
+    @staticmethod
     def delete_object(**kwargs):
         raise AssertionError("Protected bucket object should not be deleted")
 
@@ -162,6 +166,7 @@ def test_protection_allows_missing_tagset_for_s3():
 
     findings = analyze_s3(UntaggedS3Client(), config=load_config(), top_n=10)
     assert len(findings) == 1
+    assert findings[0].region == "us-west-2"
 
 
 def test_s3_access_denied_on_tags_treated_as_protected():

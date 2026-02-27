@@ -61,3 +61,6 @@ def test_print_analysis_table_emits_summary(capsys):
     assert "AWS Storage Optimization Findings" in captured.out
     assert "vol-123" in captured.out
     assert "ebs" in captured.out.lower()
+    assert "us-east-1" in captured.out
+    assert "Size" in captured.out
+    assert "100.00 GiB" in captured.out
